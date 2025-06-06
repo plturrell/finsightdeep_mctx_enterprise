@@ -7,6 +7,27 @@ echo "Container started at: $(date)"
 echo "Python version: $(python --version)"
 echo "JAX version: $(python -c 'import jax; print(jax.__version__)')"
 
+# Set up documentation
+if [ -f "/app/docker/setup-docs.sh" ]; then
+    echo "Setting up documentation..."
+    bash /app/docker/setup-docs.sh
+    
+    # Start a simple HTTP server to serve documentation on port 8080
+    if command -v python3 &> /dev/null; then
+        echo "Starting documentation server on port 8080..."
+        python3 -m http.server 8080 --directory /docs &
+    elif command -v python &> /dev/null; then
+        echo "Starting documentation server on port 8080..."
+        python -m http.server 8080 --directory /docs &
+    else
+        echo "Python not found, documentation server not started"
+    fi
+    
+    echo "Documentation available at http://localhost:8080"
+else
+    echo "Documentation setup script not found"
+fi
+
 # Check for NVIDIA GPU
 echo "Checking for NVIDIA GPU..."
 if command -v nvidia-smi &> /dev/null; then

@@ -64,6 +64,16 @@ RUN pip install --no-cache-dir \
 # Copy MCTX source code
 COPY . /app/
 
+# Ensure README files are explicitly copied
+COPY README.md /app/README.md
+COPY NVIDIA_LAUNCHPAD.md /app/NVIDIA_LAUNCHPAD.md
+COPY docker/README.md /app/docker_README.md
+COPY docs/docker/README.md /app/docker_deployment_guide.md
+
+# Create symlinks for easy access
+RUN ln -sf /app/README.md /README.md && \
+    ln -sf /app/NVIDIA_LAUNCHPAD.md /NVIDIA_LAUNCHPAD.md
+
 # Install MCTX in development mode
 RUN pip install -e .
 
