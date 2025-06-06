@@ -52,9 +52,9 @@ setup(
     long_description_content_type='text/markdown',
     author_email='mctx-dev@google.com',
     keywords='jax planning reinforcement-learning python machine learning',
-    packages=find_namespace_packages(exclude=['*_test.py']),
+    packages=find_namespace_packages(exclude=['*_test.py']) + ['src', 'src.aiq', 'src.aiq.owl'],
     install_requires=_parse_requirements(
-        os.path.join(_CURRENT_DIR, 'requirements', 'requirements.txt')),
+        os.path.join(_CURRENT_DIR, 'requirements', 'consolidated_requirements.txt')),
     tests_require=_parse_requirements(
         os.path.join(_CURRENT_DIR, 'requirements', 'requirements-test.txt')),
     zip_safe=False,  # Required for full installation.
