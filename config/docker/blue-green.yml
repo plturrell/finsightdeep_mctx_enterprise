@@ -1,0 +1,193 @@
+version: '3.8'
+
+# MCTX Blue-Green Deployment Configuration
+# Enables zero-downtime deployments with production and staging environments
+
+services:
+  # NGINX load balancer for blue-green switching
+  nginx-router:
+    image: nginx:alpine
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ../../config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../../config/nginx/ssl:/etc/nginx/ssl
+      - ../../config/nginx/scripts:/scripts
+    environment:
+      - ACTIVE_DEPLOYMENT=${ACTIVE_DEPLOYMENT:-blue}
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - mctx-network
+      - blue-network
+      - green-network
+
+  # Blue environment (initially active)
+  mctx-blue:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:blue
+    container_name: mctx-blue
+    volumes:
+      - ../../examples:/app/examples
+      - ../../mctx_output:/app/mctx_output
+      - ../../models:/app/models:ro
+    environment:
+      - JAX_PLATFORM_NAME=gpu
+      - MCTX_ENABLE_T4_OPTIMIZATIONS=${ENABLE_T4_OPTIMIZATIONS:-1}
+      - XLA_PYTHON_CLIENT_ALLOCATOR=platform
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEPLOYMENT_COLOR=blue
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - blue-network
+
+  # Green environment (initially standby)
+  mctx-green:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:green
+    container_name: mctx-green
+    volumes:
+      - ../../examples:/app/examples
+      - ../../mctx_output:/app/mctx_output
+      - ../../models:/app/models:ro
+    environment:
+      - JAX_PLATFORM_NAME=gpu
+      - MCTX_ENABLE_T4_OPTIMIZATIONS=${ENABLE_T4_OPTIMIZATIONS:-1}
+      - XLA_PYTHON_CLIENT_ALLOCATOR=platform
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEPLOYMENT_COLOR=green
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - green-network
+
+  # Visualization server (blue)
+  vis-blue:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:blue
+    container_name: vis-blue
+    ports:
+      - "${VIS_BLUE_PORT:-8051}:8050"  # Different port to avoid conflict
+    environment:
+      - JAX_PLATFORM_NAME=cpu
+      - DEPLOYMENT_COLOR=blue
+    command: ["visualize"]
+    restart: unless-stopped
+    networks:
+      - blue-network
+
+  # Visualization server (green)
+  vis-green:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:green
+    container_name: vis-green
+    ports:
+      - "${VIS_GREEN_PORT:-8052}:8050"  # Different port to avoid conflict
+    environment:
+      - JAX_PLATFORM_NAME=cpu
+      - DEPLOYMENT_COLOR=green
+    command: ["visualize"]
+    restart: unless-stopped
+    networks:
+      - green-network
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../../config/prometheus/blue-green.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - mctx-network
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../../config/grafana/provisioning:/etc/grafana/provisioning
+      - ../../config/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - mctx-network
+
+  # Redis for caching (shared between blue and green)
+  redis:
+    image: redis:7.0-alpine
+    container_name: mctx-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - blue-network
+      - green-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  mctx-network:
+    driver: bridge
+  blue-network:
+    driver: bridge
+  green-network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+    name: mctx_bg_prometheus_data
+  grafana_data:
+    name: mctx_bg_grafana_data
+  redis_data:
+    name: mctx_bg_redis_data
