@@ -1,0 +1,89 @@
+version: '3.8'
+
+# MCTX LaunchPad Docker Compose Configuration
+# Optimized for NVIDIA LaunchPad environments
+
+services:
+  # NVIDIA GPU version with T4 optimizations
+  mctx-nvidia:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:latest
+    container_name: mctx-nvidia
+    volumes:
+      - ./examples:/app/examples
+      - ./mctx_output:/app/mctx_output
+    ports:
+      - "8050:8050"  # Visualization server
+      - "8000:8000"  # API server
+      - "8080:8080"  # Documentation server
+    environment:
+      - JAX_PLATFORM_NAME=gpu
+      - MCTX_ENABLE_T4_OPTIMIZATIONS=1
+      - XLA_PYTHON_CLIENT_ALLOCATOR=platform
+      - LOG_LEVEL=INFO
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    restart: unless-stopped
+    # Copy documentation files to accessible locations for LaunchPad
+    command: >
+      sh -c "mkdir -p /usr/share/nginx/html &&
+             cp /app/README.md /usr/share/nginx/html/ &&
+             cp /app/NVIDIA_LAUNCHPAD.md /usr/share/nginx/html/ &&
+             cp /app/blueprint.md /usr/share/nginx/html/ &&
+             echo '<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"0;URL=/README.md\"></head></html>' > /usr/share/nginx/html/index.html &&
+             python -m http.server 8080 --directory /usr/share/nginx/html &
+             python examples/monitoring_demo.py --save-visualizations"
+    
+  # Visualization server (without API)
+  mctx-vis:
+    image: mctx-nvidia:latest
+    container_name: mctx-vis
+    ports:
+      - "8051:8050"  # Different port to avoid conflict
+    volumes:
+      - ./examples:/app/examples
+      - ./mctx_output:/app/mctx_output
+    environment:
+      - JAX_PLATFORM_NAME=cpu
+    command: ["visualize"]
+    restart: unless-stopped
+    depends_on:
+      - mctx-nvidia
+    
+  # Prometheus for monitoring (optional)
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/gpu.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    depends_on:
+      - mctx-nvidia
+    
+  # Grafana for dashboards (optional)
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+    name: mctx_gpu_prometheus_data
+  grafana_data:
+    name: mctx_gpu_grafana_data
