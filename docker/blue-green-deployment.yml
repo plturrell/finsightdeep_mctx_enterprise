@@ -1,0 +1,168 @@
+version: '3.8'
+
+# Blue-Green Deployment Configuration for MCTX
+# This configuration enables zero-downtime deployments with production and staging environments
+
+services:
+  # NGINX load balancer for blue-green switching
+  nginx-router:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - ./docker/nginx/scripts:/scripts
+    environment:
+      - ACTIVE_DEPLOYMENT=blue
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - mctx-network
+      - blue-network
+      - green-network
+
+  # Blue environment (initially active)
+  mctx-blue:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:blue
+    container_name: mctx-blue
+    volumes:
+      - ./examples:/app/examples
+      - ./mctx_output:/app/mctx_output
+      - ./models:/app/models:ro
+    environment:
+      - JAX_PLATFORM_NAME=gpu
+      - MCTX_ENABLE_T4_OPTIMIZATIONS=1
+      - XLA_PYTHON_CLIENT_ALLOCATOR=platform
+      - LOG_LEVEL=INFO
+      - DEPLOYMENT_COLOR=blue
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - blue-network
+
+  # Green environment (initially standby)
+  mctx-green:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:green
+    container_name: mctx-green
+    volumes:
+      - ./examples:/app/examples
+      - ./mctx_output:/app/mctx_output
+      - ./models:/app/models:ro
+    environment:
+      - JAX_PLATFORM_NAME=gpu
+      - MCTX_ENABLE_T4_OPTIMIZATIONS=1
+      - XLA_PYTHON_CLIENT_ALLOCATOR=platform
+      - LOG_LEVEL=INFO
+      - DEPLOYMENT_COLOR=green
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - green-network
+
+  # Visualization server (blue)
+  vis-blue:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:blue
+    container_name: vis-blue
+    ports:
+      - "8051:8050"  # Different port to avoid conflict
+    environment:
+      - JAX_PLATFORM_NAME=cpu
+      - DEPLOYMENT_COLOR=blue
+    command: ["visualize"]
+    restart: unless-stopped
+    networks:
+      - blue-network
+
+  # Visualization server (green)
+  vis-green:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nvidia
+    image: mctx-nvidia:green
+    container_name: vis-green
+    ports:
+      - "8052:8050"  # Different port to avoid conflict
+    environment:
+      - JAX_PLATFORM_NAME=cpu
+      - DEPLOYMENT_COLOR=green
+    command: ["visualize"]
+    restart: unless-stopped
+    networks:
+      - green-network
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - mctx-network
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - mctx-network
+
+networks:
+  mctx-network:
+    driver: bridge
+  blue-network:
+    driver: bridge
+  green-network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

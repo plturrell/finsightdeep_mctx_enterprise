@@ -35,16 +35,40 @@ from mctx._src.qtransforms import qtransform_by_min_max
 from mctx._src.qtransforms import qtransform_by_parent_and_siblings
 from mctx._src.qtransforms import qtransform_completed_by_mix_value
 from mctx._src.search import search
+from mctx._src.t4_search import t4_search
+from mctx._src.t4_optimizations import get_optimal_t4_batch_size, t4_autotuned_parameters
+from mctx._src.t4_memory_optimizations import optimize_memory_allocation, optimize_tree_layout
+from mctx._src.t4_tensor_cores import get_tensor_core_config, tensor_core_matmul
+from mctx._src.distributed import DistributedConfig, distribute_mcts, distributed_search
+from mctx._src.enhanced_distributed import (
+    EnhancedDistributedConfig, 
+    enhanced_distribute_mcts, 
+    enhanced_distributed_search,
+    PerformanceMetrics
+)
 from mctx._src.tree import Tree
 
-__version__ = "0.0.5"
+# Import monitoring components
+from mctx.monitoring import (
+    MCTSMetricsCollector,
+    SearchMetrics,
+    MCTSMonitor,
+    TreeVisualizer,
+    PerformanceProfiler,
+    ResourceMonitor,
+)
+
+__version__ = "0.0.7"
 
 __all__ = (
     "ChanceRecurrentFnOutput",
     "DecisionRecurrentFnOutput",
+    "DistributedConfig",
+    "EnhancedDistributedConfig",
     "GumbelMuZeroExtraData",
     "InteriorActionSelectionFn",
     "LoopFn",
+    "PerformanceMetrics",
     "PolicyOutput",
     "RecurrentFn",
     "RecurrentFnOutput",
@@ -52,6 +76,10 @@ __all__ = (
     "RootActionSelectionFn",
     "RootFnOutput",
     "Tree",
+    "distribute_mcts",
+    "distributed_search",
+    "enhanced_distribute_mcts",
+    "enhanced_distributed_search",
     "gumbel_muzero_interior_action_selection",
     "gumbel_muzero_policy",
     "gumbel_muzero_root_action_selection",
@@ -62,6 +90,20 @@ __all__ = (
     "qtransform_completed_by_mix_value",
     "search",
     "stochastic_muzero_policy",
+    "t4_search",
+    "get_optimal_t4_batch_size",
+    "t4_autotuned_parameters",
+    "optimize_memory_allocation",
+    "optimize_tree_layout",
+    "get_tensor_core_config",
+    "tensor_core_matmul",
+    # Monitoring components
+    "MCTSMetricsCollector",
+    "SearchMetrics",
+    "MCTSMonitor",
+    "TreeVisualizer",
+    "PerformanceProfiler",
+    "ResourceMonitor",
 )
 
 #  _________________________________________

@@ -1,0 +1,38 @@
+# Core dependencies
+fastapi==0.103.1
+uvicorn==0.23.2
+gunicorn==21.2.0
+pydantic==2.3.0
+python-dotenv==1.0.0
+httpx==0.24.1
+tenacity==8.2.3
+
+# MCTX and ML dependencies
+mctx==0.0.5
+jax==0.4.14
+jaxlib==0.4.14+cuda11.cudnn86
+numpy==1.24.4
+scipy==1.11.2
+dm-haiku==0.0.10
+optax==0.1.7
+
+# Redis cache
+redis==4.6.0
+aioredis==2.0.1
+
+# Monitoring and metrics
+prometheus-client==0.17.1
+opentelemetry-api==1.19.0
+opentelemetry-sdk==1.19.0
+opentelemetry-exporter-prometheus==1.19.0
+
+# HANA database connector (optional)
+hdbcli==2.17.16
+pyhdb==0.3.4
+
+# Security
+python-jose==3.3.0
+passlib==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.6
+EOF < /dev/null

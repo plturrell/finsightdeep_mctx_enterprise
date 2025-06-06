@@ -1,0 +1,16 @@
+# Core dependencies
+chex>=0.0.8
+jax>=0.4.25
+jaxlib>=0.4.25
+
+# Enterprise dependencies
+hdbcli>=2.16.26  # SAP HANA Python client
+numpy>=1.23.0
+matplotlib>=3.5.0
+fastapi>=0.95.0  # For API server
+uvicorn>=0.22.0  # For API server
+prometheus-client>=0.16.0  # For monitoring
+grafana-api-client>=2.0.0  # For dashboard creation
+redis>=4.5.0  # For caching
+pyjwt>=2.6.0  # For authentication
+cryptography>=40.0.0  # For encryption

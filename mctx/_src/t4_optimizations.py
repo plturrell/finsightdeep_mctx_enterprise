@@ -24,6 +24,7 @@ from jax.experimental import enable_x64
 
 from mctx._src import base
 from mctx._src import tree as tree_lib
+from mctx._src import t4_memory_optimizations
 
 # Type definitions
 T = TypeVar('T')
@@ -34,6 +35,10 @@ ModelOutput = base.ModelOutput
 # Constants for T4 optimization
 T4_WARP_SIZE = 32
 T4_TENSOR_CORE_DIM = 8  # Dimensions should be multiples of 8 for Tensor Cores
+T4_MEMORY_BANDWIDTH = 320  # GB/s theoretical peak
+T4_SHARED_MEMORY_SIZE = 64 * 1024  # 64KB shared memory per SM
+T4_L1_CACHE_SIZE = 16 * 1024  # 16KB L1 cache per SM
+T4_L2_CACHE_SIZE = 4 * 1024 * 1024  # 4MB L2 cache
 
 
 def align_for_tensor_cores(dimension: int) -> int:

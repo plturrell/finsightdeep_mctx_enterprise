@@ -26,6 +26,8 @@ from mctx._src import base
 from mctx._src import search
 from mctx._src import tree as tree_lib
 from mctx._src import t4_optimizations
+from mctx._src import t4_memory_optimizations
+from mctx._src import t4_tensor_cores
 
 Tree = tree_lib.Tree
 T = TypeVar("T")
@@ -46,7 +48,10 @@ def t4_search(
     loop_fn: base.LoopFn = jax.lax.fori_loop,
     precision: str = "fp16",
     tensor_core_aligned: bool = True,
-    monitor_memory: bool = False) -> Tree:
+    monitor_memory: bool = False,
+    optimize_memory_layout: bool = True,
+    cache_optimization_level: int = 2,
+    optimize_tensor_cores: bool = True) -> Tree:
   """T4 GPU-optimized search that performs a full search and returns sampled actions.
 
   This version includes optimizations specific to T4 GPUs:
@@ -55,6 +60,9 @@ def t4_search(
   - Memory monitoring
   - Optimized tree layout
   - Fused operations
+  - Advanced memory access pattern optimizations
+  - Cache hierarchy-aware memory layout
+  - Z-order curve data layout for improved locality
 
   In the shape descriptions, `B` denotes the batch dimension.
 
@@ -83,6 +91,13 @@ def t4_search(
     precision: "fp16" or "fp32" to control computation precision.
     tensor_core_aligned: Whether to align dimensions for tensor cores.
     monitor_memory: Whether to monitor T4 GPU memory usage.
+    optimize_memory_layout: Whether to apply advanced memory layout optimizations.
+    cache_optimization_level: Level of cache optimization (0-3):
+      - 0: No cache optimization
+      - 1: Basic L1 cache optimization
+      - 2: L1 and L2 cache optimization (default)
+      - 3: Aggressive cache optimization including Z-order curve layout
+    optimize_tensor_cores: Whether to use advanced tensor core optimizations.
 
   Returns:
     `SearchResults` containing outcomes of the search, e.g. `visit_counts`
@@ -108,7 +123,10 @@ def t4_search(
       extra_data=extra_data,
       loop_fn=loop_fn,
       precision=precision,
-      tensor_core_aligned=tensor_core_aligned)
+      tensor_core_aligned=tensor_core_aligned,
+      optimize_memory_layout=optimize_memory_layout,
+      cache_optimization_level=cache_optimization_level,
+      optimize_tensor_cores=optimize_tensor_cores)
 
 
 def t4_optimized_search(
@@ -125,7 +143,10 @@ def t4_optimized_search(
     extra_data: Any = None,
     loop_fn: base.LoopFn = jax.lax.fori_loop,
     precision: str = "fp16",
-    tensor_core_aligned: bool = True) -> Tree:
+    tensor_core_aligned: bool = True,
+    optimize_memory_layout: bool = True,
+    cache_optimization_level: int = 2,
+    optimize_tensor_cores: bool = True) -> Tree:
   """T4-optimized implementation of MCTS search.
   
   This function has the same interface as search.search, but includes
@@ -134,6 +155,18 @@ def t4_optimized_search(
   Args: Same as t4_search.
   Returns: Same as t4_search.
   """
+  # Apply tensor core optimizations if requested
+  if optimize_tensor_cores:
+    # Optimize the recurrent function for tensor cores
+    recurrent_fn = t4_tensor_cores.optimize_recurrent_fn(recurrent_fn)
+    
+    # Optimize action selection functions
+    root_action_selection_fn = t4_tensor_cores.optimize_action_selection(
+        root_action_selection_fn)
+    interior_action_selection_fn = t4_tensor_cores.optimize_action_selection(
+        interior_action_selection_fn)
+  
+  # Create the action selection function wrapper
   action_selection_fn = action_selection.switching_action_selection_wrapper(
       root_action_selection_fn=root_action_selection_fn,
       interior_action_selection_fn=interior_action_selection_fn
@@ -233,7 +266,8 @@ def t4_optimized_search(
   
   # Apply T4-optimized memory layout before returning
   if tensor_core_aligned:
-    tree = t4_optimizations.t4_optimized_tree_layout(tree)
+    # Use the enhanced memory optimizations
+    tree = t4_memory_optimizations.optimize_tree_layout(tree)
     
     # If we padded the batch, extract only the original batch
     if batch_size > root.value.shape[0]:
@@ -244,6 +278,20 @@ def t4_optimized_search(
       tree = jax.tree.map(
           lambda x: x[:orig_batch_size] if hasattr(x, 'shape') and x.shape[0] == batch_size else x,
           tree)
+
+  # Apply final memory optimizations for best inference performance
+  memory_params = t4_memory_optimizations.optimize_memory_allocation(
+      batch_size=tree_lib.infer_batch_size(tree),
+      num_simulations=num_simulations,
+      num_actions=tree.num_actions)
+      
+  # Log memory usage information when in monitoring mode
+  if hasattr(tree, 'extra_data') and tree.extra_data is not None:
+    if isinstance(tree.extra_data, dict):
+      # Add memory optimization info to the extra_data if it's a dict
+      tree = tree.replace(
+          extra_data={**tree.extra_data, 'memory_params': memory_params}
+      )
 
   return tree
 

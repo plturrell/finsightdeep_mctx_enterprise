@@ -10,6 +10,15 @@ distributed computing capabilities, enterprise integrations, and intuitive visua
 
 ![MCTX Dashboard](https://example.com/mctx-dashboard.png)
 
+## Project Structure
+
+This project is organized into two main components:
+
+1. **Core MCTX Library**: The original JAX-native Monte Carlo Tree Search implementation
+2. **Enterprise Extensions**: Production-ready features, optimizations, and deployment configurations
+
+For details on the directory structure, see [DIRECTORY_STRUCTURE.md](DIRECTORY_STRUCTURE.md).
+
 ## Business Value
 
 MCTX transforms decision-making across industries, delivering measurable ROI:
@@ -20,7 +29,7 @@ MCTX transforms decision-making across industries, delivering measurable ROI:
 - **28% reduction** in operational costs
 - **350-1200% ROI** over 3 years
 
-[Read our Executive Overview](docs/executive_overview.md) for business impact details.
+[Read our Executive Overview](enterprise/docs/business/executive_overview.md) for business impact details.
 
 ## Installation
 
@@ -64,7 +73,7 @@ Mctx provides industry-specific solutions with proven ROI:
 | Retail | Inventory, pricing optimization | 28% lower carrying costs, 62% fewer stockouts |
 | Energy | Trading optimization, grid management | 4.1% higher profits, 23% better reliability |
 
-[View All Industry Solutions](docs/industry_solutions.md)
+[View All Industry Solutions](enterprise/docs/business/industry_solutions.md)
 
 ## Motivation
 
@@ -146,7 +155,7 @@ Key performance features include:
 - **Memory Optimization**: Intelligent memory management for larger models
 - **Tensor Core Alignment**: Automatic optimization for NVIDIA hardware
 
-See [`docs/t4_optimizations.md`](docs/t4_optimizations.md) for performance details.
+See [`enterprise/docs/technical/t4_optimizations.md`](enterprise/docs/technical/t4_optimizations.md) for performance details.
 
 ### Distributed Computing
 
@@ -183,7 +192,7 @@ The distributed implementation delivers:
 - **Flexible Deployment**: Support for heterogeneous hardware environments
 - **Performance Monitoring**: Built-in metrics for optimization
 
-See [`docs/distributed_mcts.md`](docs/distributed_mcts.md) for implementation details.
+See [`enterprise/docs/technical/distributed_mcts.md`](enterprise/docs/technical/distributed_mcts.md) for implementation details.
 
 ### Enterprise Integration
 
@@ -194,26 +203,54 @@ MCTX includes integrations with enterprise systems:
 Store and retrieve decision intelligence data with enterprise-grade security:
 
 ```python
-from mctx.integrations import hana_connector
+from mctx.enterprise import HanaConfig, connect_to_hana, save_tree_to_hana, load_tree_from_hana
 
 # Connect to enterprise SAP HANA
-connector = hana_connector.HanaConnector(
+hana_config = HanaConfig(
     host="your_hana_host",
-    port=443,
+    port=30015,
     user="your_username",
     password="your_password",
-    use_ssl=True
+    schema="MCTX",
+    encryption=True
+)
+connection = connect_to_hana(hana_config)
+
+# Store search tree and model securely
+tree_id = save_tree_to_hana(
+    connection,
+    tree,
+    name="DecisionTree",
+    metadata={
+        "business_unit": "operations", 
+        "decision_owner": "CFO",
+        "project": "supply_chain_optimization"
+    }
 )
 
-# Store decision results securely
-connector.store_search_results(
-    search_id="project_001",
-    policy_output=policy_output,
-    metadata={"business_unit": "operations", "decision_owner": "CFO"}
+# Store model parameters
+model_id = save_model_to_hana(
+    connection,
+    model_params,
+    name="SupplyChainModel",
+    model_type="muzero",
+    metadata={"version": "1.2.3", "accuracy": 0.94}
+)
+
+# Store simulation results
+result_id = save_simulation_results(
+    connection,
+    tree_id,
+    model_id,
+    batch_idx=0,
+    summary=tree.summary(),
+    metadata={"simulation_time": "2023-06-15T12:30:00Z"}
 )
 
 # Retrieve previous decisions
-stored_results = connector.get_search_results("project_001")
+loaded_tree, metadata = load_tree_from_hana(connection, tree_id)
+loaded_model = load_model_from_hana(connection, model_id)
+loaded_results = load_simulation_results(connection, tree_id=tree_id)
 ```
 
 Enterprise integration features include:
@@ -222,7 +259,7 @@ Enterprise integration features include:
 - **Audit Logging**: Comprehensive logging for regulatory compliance
 - **Role-based Access**: Fine-grained permission control for decision data
 
-See [`docs/hana_integration.md`](docs/hana_integration.md) for integration details.
+See [`enterprise/docs/technical/hana_integration.md`](enterprise/docs/technical/hana_integration.md) for integration details.
 
 ### Business Intelligence Visualization
 
@@ -250,7 +287,7 @@ Visualization capabilities include:
 - **Executive Dashboards**: Present decision metrics for business stakeholders
 - **Comparative Analysis**: Compare multiple decision strategies side-by-side
 
-See [`docs/visualization.md`](docs/visualization.md) for visualization options.
+See [`enterprise/docs/technical/visualization.md`](enterprise/docs/technical/visualization.md) for visualization options.
 
 ## Example projects
 The following projects demonstrate the Mctx usage:
@@ -271,7 +308,58 @@ Tell us about your project.
 
 ## Enterprise Deployment
 
-MCTX supports enterprise-grade deployment through our containerized solutions:
+MCTX supports enterprise-grade deployment through our Docker containerization:
+
+### Docker Deployment
+
+We provide ready-to-use Docker configurations for different environments:
+
+#### NVIDIA GPU-Optimized Container
+
+```bash
+# Build and run the NVIDIA GPU optimized container
+./docker-build.sh nvidia
+
+# Or with Docker Compose
+docker-compose up mctx-nvidia
+```
+
+- **T4 GPU Optimizations**: Automatic detection and configuration for NVIDIA T4 GPUs
+- **Tensor Core Utilization**: Optimized matrix operations with Tensor Cores
+- **Memory Layout Optimization**: Enhanced memory access patterns for GPU acceleration
+- **Monitoring and Visualization**: Built-in tools for performance analysis
+
+#### Vercel-Compatible API Container
+
+```bash
+# Build and run the API container
+./docker-build.sh api
+
+# Or with Docker Compose
+docker-compose up mctx-api
+```
+
+- **Serverless Friendly**: Optimized for deployment on Vercel and similar platforms
+- **Lightweight Design**: Minimal container focused on CPU-based inference
+- **API-First Architecture**: RESTful API for easy integration with any frontend
+- **Resource Efficient**: Optimized for containerized environments
+
+#### Visualization Server
+
+```bash
+# Build and run the visualization server
+./docker-build.sh vis
+
+# Or with Docker Compose
+docker-compose up mctx-vis
+```
+
+- **Interactive Dashboards**: Rich, interactive visualizations of MCTS processes
+- **Real-time Monitoring**: Live updates of search progress
+- **Metrics Panels**: Comprehensive analytics and performance monitoring
+- **Enterprise-Grade Design**: Sophisticated design system for business users
+
+See [docker/README.md](docker/README.md) for detailed deployment instructions.
 
 ### FastAPI Backend
 
@@ -281,8 +369,6 @@ We provide a ready-to-use FastAPI backend optimized for NVIDIA GPUs:
 - **Redis Caching**: High-performance response caching
 - **Security**: API key authentication and TLS encryption
 
-See [docs/deployment.md](docs/deployment.md) for detailed instructions.
-
 ### Frontend Integration
 
 Our visualization frontend can be deployed on Vercel or other cloud providers:
@@ -291,19 +377,22 @@ Our visualization frontend can be deployed on Vercel or other cloud providers:
 - **SSO Integration**: Support for enterprise identity providers
 - **White-labeling**: Customizable branding for enterprise deployment
 
-## Business Value Documentation
+## Documentation
 
 For detailed information on business value and implementation:
 
-- [Executive Overview](docs/executive_overview.md)
-- [Business Value & ROI](docs/business_value.md)
-- [Industry Solutions](docs/industry_solutions.md)
-- [API Reference](docs/api_reference.md)
-- [T4 Optimizations Guide](docs/t4_optimizations.md)
-- [Distributed MCTS](docs/distributed_mcts.md)
-- [Enterprise Integration](docs/hana_integration.md)
-- [Visualization Guide](docs/visualization.md)
-- [Enterprise Deployment](docs/deployment.md)
+### Business Documentation
+- [Executive Overview](enterprise/docs/business/executive_overview.md)
+- [Business Value & ROI](enterprise/docs/business/business_value.md)
+- [Industry Solutions](enterprise/docs/business/industry_solutions.md)
+
+### Technical Documentation
+- [API Reference](enterprise/docs/technical/api_reference.md)
+- [T4 Optimizations Guide](enterprise/docs/technical/t4_optimizations.md)
+- [Distributed MCTS](enterprise/docs/technical/distributed_mcts.md)
+- [Enterprise Integration](enterprise/docs/technical/hana_integration.md)
+- [Visualization & Monitoring](enterprise/docs/technical/visualization_monitoring.md)
+- [Docker Deployment](docker/README.md)
 
 ## Enterprise Support
 

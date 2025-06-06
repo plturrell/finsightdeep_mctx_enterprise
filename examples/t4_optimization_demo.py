@@ -63,6 +63,7 @@ def main():
   standard_times = []
   t4_fp32_times = []
   t4_fp16_times = []
+  t4_tc_times = []
   
   for bs in batch_sizes:
     print(f"\nBatch size: {bs}")
@@ -91,19 +92,29 @@ def main():
         num_simulations, use_t4=True, precision="fp16")
     t4_fp16_times.append(t4_fp16_time)
     
+    # T4-optimized MCTS with FP16 and advanced tensor core optimizations
+    t4_tc_time = benchmark_search(
+        bs, params, model, dummy_state, env.num_actions, 
+        num_simulations, use_t4=True, precision="fp16", 
+        optimize_tensor_cores=True)
+    t4_tc_times.append(t4_tc_time)
+    
     # Print speedup
     print(f"  Standard MCTS:       {standard_time:.2f} ms")
     print(f"  T4-optimized (FP32): {t4_fp32_time:.2f} ms " +
           f"({standard_time/t4_fp32_time:.2f}x speedup)")
     print(f"  T4-optimized (FP16): {t4_fp16_time:.2f} ms " + 
           f"({standard_time/t4_fp16_time:.2f}x speedup)")
+    print(f"  T4 with Tensor Cores: {t4_tc_time:.2f} ms " + 
+          f"({standard_time/t4_tc_time:.2f}x speedup)")
   
   # Plot performance comparison
-  plot_performance(batch_sizes, standard_times, t4_fp32_times, t4_fp16_times)
+  plot_performance(batch_sizes, standard_times, t4_fp32_times, t4_fp16_times, t4_tc_times)
 
 
 def benchmark_search(batch_size, params, model, state, num_actions, 
-                     num_simulations, use_t4=False, precision="fp32"):
+                     num_simulations, use_t4=False, precision="fp32",
+                     optimize_tensor_cores=False):
   """Benchmark a search function and return time in milliseconds."""
   # Create root function
   def root_fn(params, rng_key, state):
@@ -140,7 +151,10 @@ def benchmark_search(batch_size, params, model, state, num_actions,
         interior_action_selection_fn=mctx.muzero_action_selection,
         precision=precision,
         tensor_core_aligned=True,
-        monitor_memory=False))
+        monitor_memory=False,
+        optimize_memory_layout=True,
+        cache_optimization_level=2,
+        optimize_tensor_cores=optimize_tensor_cores))
   else:
     # Use standard search
     search_fn = jax.jit(lambda p, k, s: mctx.search(
@@ -172,13 +186,16 @@ def benchmark_search(batch_size, params, model, state, num_actions,
   return sum(times) / len(times)
 
 
-def plot_performance(batch_sizes, standard_times, t4_fp32_times, t4_fp16_times):
+def plot_performance(batch_sizes, standard_times, t4_fp32_times, t4_fp16_times, t4_tc_times=None):
   """Plot performance comparison."""
   plt.figure(figsize=(10, 6))
   
   plt.plot(batch_sizes, standard_times, 'o-', label='Standard MCTS')
   plt.plot(batch_sizes, t4_fp32_times, 's-', label='T4-optimized (FP32)')
   plt.plot(batch_sizes, t4_fp16_times, '^-', label='T4-optimized (FP16)')
+  
+  if t4_tc_times is not None:
+    plt.plot(batch_sizes, t4_tc_times, 'd-', label='T4 with Tensor Cores')
   
   plt.xlabel('Batch Size')
   plt.ylabel('Execution Time (ms)')
@@ -202,6 +219,14 @@ def plot_performance(batch_sizes, standard_times, t4_fp32_times, t4_fp16_times):
                  textcoords="offset points",
                  xytext=(0, -15),
                  ha='center')
+    
+    if t4_tc_times is not None:
+      tc_speedup = standard_times[i] / t4_tc_times[i]
+      plt.annotate(f'{tc_speedup:.2f}x', 
+                  (bs, t4_tc_times[i]),
+                  textcoords="offset points",
+                  xytext=(0, -15),
+                  ha='center')
   
   plt.savefig('t4_mcts_performance.png')
   print("\nPerformance chart saved to 't4_mcts_performance.png'")

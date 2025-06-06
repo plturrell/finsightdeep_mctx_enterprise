@@ -1,0 +1,25 @@
+# Core dependencies
+chex>=0.0.8
+jax>=0.4.25
+jaxlib>=0.4.25
+
+# API dependencies
+fastapi>=0.95.1
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-multipart>=0.0.6
+
+# Monitoring and observability
+loguru>=0.7.0
+opentelemetry-api>=1.15.0
+opentelemetry-sdk>=1.15.0
+opentelemetry-exporter-otlp>=1.15.0
+prometheus-client>=0.16.0
+
+# Development tools
+pytest>=7.3.1
+pytest-cov>=4.1.0
+black>=23.3.0
+mypy>=1.3.0
+isort>=5.12.0

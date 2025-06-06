@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Root node -->
+  <circle cx="400" cy="100" r="25" fill="#6366F1" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Level 1 nodes -->
+  <circle cx="200" cy="200" r="20" fill="#6366F1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="400" cy="200" r="20" fill="#6366F1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="600" cy="200" r="20" fill="#6366F1" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Level 2 nodes -->
+  <circle cx="150" cy="300" r="16" fill="#6366F1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="250" cy="300" r="16" fill="#10B981" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="350" cy="300" r="16" fill="#6366F1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="450" cy="300" r="16" fill="#F59E0B" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="550" cy="300" r="16" fill="#6366F1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="650" cy="300" r="16" fill="#CBD5E1" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Level 3 nodes -->
+  <circle cx="125" cy="400" r="12" fill="#CBD5E1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="175" cy="400" r="12" fill="#CBD5E1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="225" cy="400" r="12" fill="#10B981" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="275" cy="400" r="12" fill="#10B981" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="325" cy="400" r="12" fill="#CBD5E1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="375" cy="400" r="12" fill="#CBD5E1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="425" cy="400" r="12" fill="#F59E0B" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="475" cy="400" r="12" fill="#F59E0B" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="525" cy="400" r="12" fill="#CBD5E1" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="575" cy="400" r="12" fill="#CBD5E1" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Edges from root to level 1 -->
+  <path d="M 390 118 L 220 185" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 400 125 L 400 180" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 410 118 L 580 185" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  
+  <!-- Edges from level 1 to level 2 -->
+  <path d="M 195 215 L 155 285" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 205 215 L 245 285" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 395 215 L 355 285" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 405 215 L 445 285" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 595 215 L 555 285" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 605 215 L 645 285" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  
+  <!-- Edges from level 2 to level 3 -->
+  <path d="M 146 312 L 128 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 154 312 L 172 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 246 312 L 228 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 254 312 L 272 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 346 312 L 328 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 354 312 L 372 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 446 312 L 428 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 454 312 L 472 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 546 312 L 528 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  <path d="M 554 312 L 572 388" stroke="#CBD5E1" stroke-width="2" fill="none"/>
+  
+  <!-- Labels -->
+  <text x="400" y="105" font-family="Arial" font-size="12" text-anchor="middle" fill="#ffffff">Root</text>
+  <text x="250" y="460" font-family="Arial" font-size="14" fill="#10B981" font-weight="bold">Optimal Path</text>
+  <text x="450" y="460" font-family="Arial" font-size="14" fill="#F59E0B" font-weight="bold">Selected Path</text>
+  <text x="350" y="500" font-family="Arial" font-size="16" fill="#334155" font-weight="bold">Monte Carlo Tree Search Visualization</text>
+</svg>
