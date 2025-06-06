@@ -28,6 +28,14 @@ else
     echo "Documentation setup script not found"
 fi
 
+# Run the fix-readme script to make README accessible in many locations
+if [ -f "/app/docker/fix-readme.sh" ]; then
+    echo "Running README fix script..."
+    bash /app/docker/fix-readme.sh
+else
+    echo "README fix script not found"
+fi
+
 # Check for NVIDIA GPU
 echo "Checking for NVIDIA GPU..."
 if command -v nvidia-smi &> /dev/null; then
