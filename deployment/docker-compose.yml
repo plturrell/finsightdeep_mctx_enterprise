@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  mctx-api:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - MCTX_NUM_WORKERS=4
+      - MCTX_MAX_BATCH_SIZE=32
+      - MCTX_DEFAULT_SIMULATIONS=128
+      - MCTX_TIMEOUT_SECONDS=60
+      - MCTX_GPU_MEMORY_FRACTION=0.9
+      - MCTX_USE_MIXED_PRECISION=true
+      - MCTX_ENABLE_DISTRIBUTED=false
+      - MCTX_NUM_DEVICES=1
+      - MCTX_ENABLE_REDIS_CACHE=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CACHE_TTL=3600
+      - MCTX_ENABLE_PROMETHEUS=true
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  prometheus:
+    image: prom/prometheus:v2.40.0
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:9.3.1
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # Optional: Add SAP HANA client container if needed
+  # hana-client:
+  #   build:
+  #     context: ./hana-client
+  #     dockerfile: Dockerfile
+  #   restart: always
+  #   environment:
+  #     - HANA_HOST=${HANA_HOST}
+  #     - HANA_PORT=${HANA_PORT}
+  #     - HANA_USER=${HANA_USER}
+  #     - HANA_PASSWORD=${HANA_PASSWORD}
+  #     - HANA_USE_SSL=true
+  #   depends_on:
+  #     - mctx-api
+
+  # Optional: Add NGINX as a reverse proxy with TLS
+  # nginx:
+  #   image: nginx:alpine
+  #   restart: always
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/conf.d:/etc/nginx/conf.d
+  #     - ./nginx/certs:/etc/nginx/certs
+  #     - ./nginx/logs:/var/log/nginx
+  #   depends_on:
+  #     - mctx-api
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
