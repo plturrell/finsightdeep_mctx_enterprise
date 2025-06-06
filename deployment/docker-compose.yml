@@ -1,32 +1,40 @@
 version: '3.8'
 
 services:
+  # MCTX API with NVIDIA GPU support
   mctx-api:
     build:
-      context: ./fastapi
-      dockerfile: Dockerfile
-    restart: always
+      context: .
+      dockerfile: fastapi/Dockerfile
+    image: mctx-api:latest
+    container_name: mctx-api
+    restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      - ../models:/app/models
+      - ./models:/app/models
       - ./logs:/app/logs
+      - mctx-data:/app/data
     env_file:
       - .env
     environment:
-      - MCTX_NUM_WORKERS=4
-      - MCTX_MAX_BATCH_SIZE=32
-      - MCTX_DEFAULT_SIMULATIONS=128
-      - MCTX_TIMEOUT_SECONDS=60
-      - MCTX_GPU_MEMORY_FRACTION=0.9
-      - MCTX_USE_MIXED_PRECISION=true
-      - MCTX_ENABLE_DISTRIBUTED=false
-      - MCTX_NUM_DEVICES=1
-      - MCTX_ENABLE_REDIS_CACHE=true
+      - TZ=UTC
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - MCTX_NUM_WORKERS=${MCTX_NUM_WORKERS:-4}
+      - MCTX_MAX_BATCH_SIZE=${MCTX_MAX_BATCH_SIZE:-32}
+      - MCTX_DEFAULT_SIMULATIONS=${MCTX_DEFAULT_SIMULATIONS:-128}
+      - MCTX_TIMEOUT_SECONDS=${MCTX_TIMEOUT_SECONDS:-60}
+      - MCTX_GPU_MEMORY_FRACTION=${MCTX_GPU_MEMORY_FRACTION:-0.9}
+      - MCTX_USE_MIXED_PRECISION=${MCTX_USE_MIXED_PRECISION:-true}
+      - MCTX_ENABLE_DISTRIBUTED=${MCTX_ENABLE_DISTRIBUTED:-false}
+      - MCTX_NUM_DEVICES=${MCTX_NUM_DEVICES:-1}
+      - MCTX_ENABLE_REDIS_CACHE=${MCTX_ENABLE_REDIS_CACHE:-true}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_CACHE_TTL=3600
-      - MCTX_ENABLE_PROMETHEUS=true
+      - REDIS_CACHE_TTL=${REDIS_CACHE_TTL:-3600}
+      - MCTX_ENABLE_PROMETHEUS=${MCTX_ENABLE_PROMETHEUS:-true}
+      - MCTX_API_KEY_REQUIRED=${MCTX_API_KEY_REQUIRED:-true}
     depends_on:
       - redis
     deploy:
@@ -36,43 +44,86 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
+  # Redis for caching
   redis:
     image: redis:7.0-alpine
-    restart: always
+    container_name: mctx-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Prometheus for metrics collection
   prometheus:
-    image: prom/prometheus:v2.40.0
-    restart: always
+    image: prom/prometheus:v2.44.0
+    container_name: mctx-prometheus
+    restart: unless-stopped
     ports:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - mctx-api
 
+  # Grafana for visualization and dashboards
   grafana:
-    image: grafana/grafana:9.3.1
-    restart: always
+    image: grafana/grafana:9.5.2
+    container_name: mctx-grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
+      - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
-      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     depends_on:
       - prometheus
 
+  # Redis Exporter for Redis metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: mctx-redis-exporter
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    depends_on:
+      - redis
+
   # Optional: Add SAP HANA client container if needed
+  # Uncomment and configure as needed
   # hana-client:
   #   build:
   #     context: ./hana-client
   #     dockerfile: Dockerfile
-  #   restart: always
+  #   container_name: mctx-hana-client
+  #   restart: unless-stopped
   #   environment:
   #     - HANA_HOST=${HANA_HOST}
   #     - HANA_PORT=${HANA_PORT}
@@ -83,9 +134,11 @@ services:
   #     - mctx-api
 
   # Optional: Add NGINX as a reverse proxy with TLS
+  # Uncomment and configure as needed
   # nginx:
   #   image: nginx:alpine
-  #   restart: always
+  #   container_name: mctx-nginx
+  #   restart: unless-stopped
   #   ports:
   #     - "80:80"
   #     - "443:443"
@@ -97,6 +150,15 @@ services:
   #     - mctx-api
 
 volumes:
+  mctx-data:
+    name: mctx-data
   redis-data:
+    name: mctx-redis-data
   prometheus-data:
+    name: mctx-prometheus-data
   grafana-data:
+    name: mctx-grafana-data
+
+networks:
+  default:
+    name: mctx-network
