@@ -1,0 +1,1 @@
+/Users/apple/projects/finsightdev/mctx/scripts/deploy-nvidia.sh
