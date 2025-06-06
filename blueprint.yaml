@@ -1,0 +1,59 @@
+name: FinsightDeep MCTX Enterprise
+version: 1.0.0
+description: Enterprise-grade Monte Carlo Tree Search with T4 GPU optimizations for business decision intelligence
+author: FinSight Development Team
+blueprint_id: finsightdeep-mctx-enterprise
+runtime: docker-compose
+category: AI/ML
+tags:
+  - gpu
+  - ai
+  - decision-intelligence
+  - t4-optimized
+  - monte-carlo
+  - jax
+difficulty: intermediate
+estimated_runtime: 60
+
+# Required hardware
+requirements:
+  gpu: true
+  gpu_type: T4
+  memory_gb: 16
+  storage_gb: 10
+
+# Services information
+services:
+  - name: Main Visualization
+    port: 8050
+    url_path: /
+    description: Interactive MCTS tree visualization dashboard
+    
+  - name: API Server
+    port: 8000
+    url_path: /
+    description: REST API for programmatic access
+    
+  - name: Secondary Visualization
+    port: 8051
+    url_path: /
+    description: Alternative visualization interface
+    
+  - name: Prometheus
+    port: 9090
+    url_path: /
+    description: Metrics collection and querying
+    
+  - name: Grafana
+    port: 3001
+    url_path: /
+    description: Interactive monitoring dashboards (login with admin/admin)
+    
+  - name: Documentation
+    port: 8080
+    url_path: /
+    description: Documentation server
+
+# Documentation
+documentation:
+  readme: LAUNCHPAD_README.md
