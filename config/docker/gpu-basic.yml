@@ -7,21 +7,21 @@ services:
   # NVIDIA GPU version with T4 optimizations
   mctx-nvidia:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/Dockerfile.nvidia
     image: mctx-nvidia:latest
     container_name: mctx-nvidia
     volumes:
-      - ../../examples:/app/examples
-      - ../../mctx_output:/app/mctx_output
+      - ./examples:/app/examples
+      - ./mctx_output:/app/mctx_output
     ports:
-      - "${VIS_PORT:-8050}:8050"  # Visualization server
-      - "${API_PORT:-8000}:8000"  # API server
+      - "8050:8050"  # Visualization server
+      - "8000:8000"  # API server
     environment:
       - JAX_PLATFORM_NAME=gpu
-      - MCTX_ENABLE_T4_OPTIMIZATIONS=${ENABLE_T4_OPTIMIZATIONS:-1}
+      - MCTX_ENABLE_T4_OPTIMIZATIONS=1
       - XLA_PYTHON_CLIENT_ALLOCATOR=platform
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_LEVEL=INFO
     deploy:
       resources:
         reservations:
@@ -33,15 +33,15 @@ services:
   # Visualization server (without API)
   mctx-vis:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/Dockerfile.nvidia
     image: mctx-nvidia:latest
     container_name: mctx-vis
     ports:
-      - "${VIS_ALT_PORT:-8051}:8050"  # Different port to avoid conflict
+      - "8051:8050"  # Different port to avoid conflict
     volumes:
-      - ../../examples:/app/examples
-      - ../../mctx_output:/app/mctx_output
+      - ./examples:/app/examples
+      - ./mctx_output:/app/mctx_output
     environment:
       - JAX_PLATFORM_NAME=cpu
     command: ["visualize"]
@@ -51,9 +51,9 @@ services:
   prometheus:
     image: prom/prometheus
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "9090:9090"
     volumes:
-      - ../../config/prometheus/gpu.yml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus/gpu.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     restart: unless-stopped
     
@@ -61,9 +61,9 @@ services:
   grafana:
     image: grafana/grafana
     ports:
-      - "${GRAFANA_PORT:-3001}:3000"
+      - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
