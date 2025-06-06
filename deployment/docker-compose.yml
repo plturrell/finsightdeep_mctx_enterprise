@@ -4,15 +4,15 @@ services:
   # MCTX API with NVIDIA GPU support
   mctx-api:
     build:
-      context: .
-      dockerfile: fastapi/Dockerfile
+      context: ./fastapi
+      dockerfile: Dockerfile
     image: mctx-api:latest
     container_name: mctx-api
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      - ./models:/app/models
+      - ../models:/app/models
       - ./logs:/app/logs
       - mctx-data:/app/data
     env_file:
@@ -119,9 +119,7 @@ services:
   # Optional: Add SAP HANA client container if needed
   # Uncomment and configure as needed
   # hana-client:
-  #   build:
-  #     context: ./hana-client
-  #     dockerfile: Dockerfile
+  #   image: saplabs/hanacloudclient:latest
   #   container_name: mctx-hana-client
   #   restart: unless-stopped
   #   environment:
