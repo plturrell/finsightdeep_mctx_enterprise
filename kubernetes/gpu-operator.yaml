@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mctx-enterprise
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mctx-config
+  namespace: mctx-enterprise
+data:
+  MCTX_ENABLE_T4_OPTIMIZATIONS: "1"
+  MCTX_PRECISION: "fp16"
+  MCTX_TENSOR_CORES: "1"
+  MCTX_CACHE_OPTIMIZATION_LEVEL: "2"
+  JAX_PLATFORM_NAME: "gpu"
+  XLA_PYTHON_CLIENT_ALLOCATOR: "platform"
+  LOG_LEVEL: "INFO"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mctx-nvidia
+  namespace: mctx-enterprise
+  labels:
+    app: mctx-nvidia
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mctx-nvidia
+  template:
+    metadata:
+      labels:
+        app: mctx-nvidia
+    spec:
+      containers:
+      - name: mctx-nvidia
+        image: mctx-nvidia:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: api
+        - containerPort: 8050
+          name: visualization
+        envFrom:
+        - configMapRef:
+            name: mctx-config
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: mctx-data
+          mountPath: /app/mctx_output
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: mctx-data
+        persistentVolumeClaim:
+          claimName: mctx-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mctx-vis
+  namespace: mctx-enterprise
+  labels:
+    app: mctx-vis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mctx-vis
+  template:
+    metadata:
+      labels:
+        app: mctx-vis
+    spec:
+      containers:
+      - name: mctx-vis
+        image: mctx-nvidia:latest
+        imagePullPolicy: IfNotPresent
+        command: ["visualize"]
+        ports:
+        - containerPort: 8050
+          name: visualization
+        env:
+        - name: JAX_PLATFORM_NAME
+          value: "cpu"
+        resources:
+          limits:
+            memory: "2Gi"
+          requests:
+            memory: "1Gi"
+            cpu: "0.5"
+        volumeMounts:
+        - name: mctx-data
+          mountPath: /app/mctx_output
+          readOnly: true
+      volumes:
+      - name: mctx-data
+        persistentVolumeClaim:
+          claimName: mctx-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mctx-nvidia-api
+  namespace: mctx-enterprise
+spec:
+  selector:
+    app: mctx-nvidia
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: api
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mctx-nvidia-vis
+  namespace: mctx-enterprise
+spec:
+  selector:
+    app: mctx-nvidia
+  ports:
+  - port: 8050
+    targetPort: 8050
+    name: visualization
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mctx-vis
+  namespace: mctx-enterprise
+spec:
+  selector:
+    app: mctx-vis
+  ports:
+  - port: 8051
+    targetPort: 8050
+    name: visualization
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mctx-data
+  namespace: mctx-enterprise
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mctx-ingress
+  namespace: mctx-enterprise
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: ${MCTX_PRIMARY_DOMAIN:-mctx.$(DOMAIN_SUFFIX)}
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: mctx-nvidia-api
+            port:
+              number: 8000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mctx-nvidia-vis
+            port:
+              number: 8050
+  - host: ${MCTX_SECONDARY_DOMAIN:-mctx-alt.$(DOMAIN_SUFFIX)}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mctx-vis
+            port:
+              number: 8051

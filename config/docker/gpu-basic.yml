@@ -1,40 +1,75 @@
 version: '3.8'
 
-# MCTX Basic GPU Docker Compose Configuration
-# Simplified NVIDIA GPU setup optimized for T4 GPUs
+# MCTX Enterprise GPU Docker Compose Configuration
+# Optimized for NVIDIA T4 GPUs with advanced monitoring and health checks
 
 services:
   # NVIDIA GPU version with T4 optimizations
   mctx-nvidia:
     build:
       context: .
-      dockerfile: docker/Dockerfile.nvidia
+      dockerfile: docker/Dockerfile.nvidia.optimized
     image: mctx-nvidia:latest
     container_name: mctx-nvidia
     volumes:
       - ./examples:/app/examples
       - ./mctx_output:/app/mctx_output
+      - ./logs:/app/logs
     ports:
       - "8050:8050"  # Visualization server
       - "8000:8000"  # API server
     environment:
+      # JAX and GPU configuration
       - JAX_PLATFORM_NAME=gpu
-      - MCTX_ENABLE_T4_OPTIMIZATIONS=1
       - XLA_PYTHON_CLIENT_ALLOCATOR=platform
+      
+      # T4 optimization settings
+      - MCTX_ENABLE_T4_OPTIMIZATIONS=1
+      - MCTX_PRECISION=fp16
+      - MCTX_TENSOR_CORES=1
+      - MCTX_CACHE_OPTIMIZATION_LEVEL=2
+      
+      # Logging configuration
       - LOG_LEVEL=INFO
+      - MCTX_LOG_DIR=/app/logs
+      - MCTX_ENABLE_PERFORMANCE_LOGGING=1
+      
+      # Health monitoring
+      - MCTX_HEALTH_CHECK_INTERVAL=30
+      - MCTX_ENABLE_RESOURCE_MONITORING=1
+      
+      # Distribution settings (if using distributed mode)
+      - MCTX_MODEL_PATH=${MCTX_MODEL_PATH:-/app/models/default_model.npz}
+      - MCTX_MODEL_TYPE=${MCTX_MODEL_TYPE:-default}
+      - MCTX_BATCH_SIZE=${MCTX_BATCH_SIZE:-64}
+      
+      # Domain settings (for documentation and links)
+      - DOMAIN_SUFFIX=${DOMAIN_SUFFIX:-example.com}
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "mctx-nvidia"
     
   # Visualization server (without API)
   mctx-vis:
     build:
       context: .
-      dockerfile: docker/Dockerfile.nvidia
+      dockerfile: docker/Dockerfile.nvidia.optimized
     image: mctx-nvidia:latest
     container_name: mctx-vis
     ports:
@@ -42,37 +77,177 @@ services:
     volumes:
       - ./examples:/app/examples
       - ./mctx_output:/app/mctx_output
+      - ./logs:/app/logs
     environment:
       - JAX_PLATFORM_NAME=cpu
+      - LOG_LEVEL=INFO
+      - MCTX_LOG_DIR=/app/logs
     command: ["visualize"]
+    depends_on:
+      - mctx-nvidia
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "mctx-vis"
     
-  # Prometheus for monitoring (optional)
+  # Documentation server
+  docs-server:
+    image: nginx:alpine
+    container_name: mctx-docs
+    volumes:
+      - ./docs:/usr/share/nginx/html
+    ports:
+      - "8080:80"
+    depends_on:
+      - mctx-nvidia
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+        tag: "mctx-docs"
+    
+  # Prometheus for monitoring
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
+    container_name: mctx-prometheus
     ports:
       - "9090:9090"
     volumes:
       - ./config/prometheus/gpu.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        tag: "prometheus"
     
-  # Grafana for dashboards (optional)
+  # Grafana for dashboards
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
+    container_name: mctx-grafana
     ports:
       - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_RENDERING_SERVER_URL=http://renderer:8081/render
+      - GF_RENDERING_CALLBACK_URL=http://grafana:3000/
+      - GF_LOG_MODE=console file
+      - GF_LOG_LEVEL=info
     volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "grafana"
+    
+  # Grafana renderer service for PDF exports
+  renderer:
+    image: grafana/grafana-image-renderer:latest
+    container_name: mctx-grafana-renderer
+    environment:
+      - ENABLE_METRICS=true
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+        tag: "grafana-renderer"
+
+  # Node exporter for host metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: mctx-node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - 9100
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+        tag: "node-exporter"
+
+  # NVIDIA DCGM exporter for GPU metrics
+  dcgm-exporter:
+    image: nvidia/dcgm-exporter:latest
+    container_name: mctx-dcgm-exporter
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    expose:
+      - 9400
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
+        tag: "dcgm-exporter"
 
 volumes:
   prometheus_data:
     name: mctx_gpu_prometheus_data
   grafana_data:
     name: mctx_gpu_grafana_data
+
+networks:
+  default:
+    name: mctx-network

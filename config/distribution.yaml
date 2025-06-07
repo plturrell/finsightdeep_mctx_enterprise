@@ -1,0 +1,167 @@
+# MCTX Distributed Training Configuration
+# Configuration for distributed training across multiple GPUs
+
+# General settings
+general:
+  name: "mctx-distributed"
+  seed: 42
+  output_dir: "/app/mctx_output/distributed"
+  log_level: "INFO"
+  precision: "fp16"  # Options: fp32, fp16
+  enable_tensor_cores: true
+  enable_t4_optimizations: true
+  memory_optimization_level: 2  # 0-3, higher = more aggressive optimizations
+
+# Distribution strategy
+distribution:
+  # Strategy options: data_parallel, model_parallel, hybrid
+  strategy: "data_parallel"
+  
+  # Communication backend: nccl, gloo
+  backend: "nccl"
+  
+  # Process groups
+  process_groups:
+    # Master process group for global synchronization
+    - name: "global"
+      devices: "all"
+    
+    # Process group for model parallelism (if using hybrid strategy)
+    - name: "model_parallel"
+      devices_per_node: 2
+      
+    # Process group for data parallelism
+    - name: "data_parallel"
+      devices: "all"
+  
+  # Synchronization settings
+  sync:
+    # How often to synchronize weights (in steps)
+    sync_weights_every: 10
+    
+    # How often to synchronize optimizer state (in steps)
+    sync_optim_every: 100
+    
+    # Whether to synchronize RNG state
+    sync_rng: true
+
+# Parallelism configuration
+parallelism:
+  # Batch size per device
+  per_device_batch_size: 64
+  
+  # Gradient accumulation steps
+  gradient_accumulation_steps: 1
+  
+  # Model parallelism settings (for hybrid strategy)
+  model_parallel:
+    # Which layers to partition across devices
+    partition_layers: ["transformer_blocks"]
+    
+    # Pipeline stages
+    pipeline_stages: 2
+    
+    # Microbatch size for pipeline parallelism
+    microbatch_size: 16
+
+# Checkpointing
+checkpointing:
+  # Save checkpoints every N steps
+  save_every: 1000
+  
+  # Keep top N checkpoints
+  keep_top_n: 5
+  
+  # Metric to track for best checkpoints
+  tracking_metric: "validation_reward"
+  
+  # Whether to save optimizer state
+  save_optimizer: true
+  
+  # Whether to enable gradient checkpointing to save memory
+  gradient_checkpointing: true
+
+# Monitoring
+monitoring:
+  # Enable performance monitoring
+  enable: true
+  
+  # Monitoring interval in seconds
+  interval_seconds: 10
+  
+  # Track GPU metrics
+  track_gpu_metrics: true
+  
+  # Track communication overhead
+  track_communication: true
+  
+  # Profiling settings
+  profiling:
+    # Enable profiling
+    enable: false
+    
+    # Profile every N steps
+    profile_every: 100
+    
+    # Profile duration in seconds
+    profile_duration: 10
+
+# MCTS search configuration
+search:
+  # Number of simulations
+  num_simulations: 800
+  
+  # Maximum tree depth
+  max_depth: 50
+  
+  # Action selection strategy (options: muzero, puct, gumbel)
+  action_selection: "muzero"
+  
+  # PUCT parameters
+  puct:
+    c_init: 1.25
+    c_base: 19652
+  
+  # Advanced search parameters
+  dirichlet_alpha: 0.3
+  dirichlet_fraction: 0.25
+  value_scale: 0.5
+
+# Custom T4 optimizations
+t4_optimizations:
+  # Cache optimization level (0-3)
+  cache_level: 2
+  
+  # Memory layout optimization
+  optimize_memory_layout: true
+  
+  # Use Z-order curve for memory layout
+  use_z_order_curve: true
+  
+  # Tensor core utilization settings
+  tensor_cores:
+    # Enable tensor core optimizations
+    enable: true
+    
+    # Align dimensions to multiples of 8 for tensor cores
+    align_dimensions: true
+    
+    # Use FP16 for tensor core operations
+    use_fp16: true
+    
+    # Apply mixed precision where possible
+    use_mixed_precision: true
+
+# Resource allocation
+resources:
+  # Number of GPUs to use (per node)
+  num_gpus: 4
+  
+  # Number of nodes to use
+  num_nodes: 1
+  
+  # Reserve memory for each GPU (in GB)
+  gpu_memory_gb: 14
+  
+  # Reserve CPU cores per GPU
+  cpu_cores_per_gpu: 4

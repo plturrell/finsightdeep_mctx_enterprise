@@ -10,7 +10,7 @@ from .core.config import get_settings, setup_logging
 from .core.exceptions import MCTXException
 from .core.rate_limit import RateLimitMiddleware
 from .core.auth import get_user_id
-from .routers import mcts, auth, tasks, graphql
+from .routers import mcts, auth, tasks, graphql, health
 from .models.mcts_models import ErrorResponse
 
 # Set up logging
@@ -188,6 +188,7 @@ app.include_router(mcts.router, prefix=settings.API_V1_STR)
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(tasks.router, prefix=settings.API_V1_STR)
 app.include_router(graphql.router, prefix=settings.API_V1_STR)
+app.include_router(health.router)
 
 
 # Root endpoint
