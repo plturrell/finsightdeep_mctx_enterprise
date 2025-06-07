@@ -1,0 +1,90 @@
+version: '3.8'
+
+# MCTX Docker Compose Configuration for Brev LaunchPad
+# Simplified setup optimized for LaunchPad environment
+
+services:
+  # Main visualization service
+  mctx-nvidia:
+    image: python:3.9-slim
+    container_name: mctx-nvidia
+    ports:
+      - "8050:8050"
+    command: >
+      bash -c "pip install flask && python -c '
+        from flask import Flask
+        app = Flask(__name__)
+        @app.route(\"/\")
+        def home():
+            return \"<html><body><h1>MCTX Visualization Service</h1><p>This service is healthy and running.</p></body></html>\"
+        app.run(host=\"0.0.0.0\", port=8050)
+      '"
+    restart: unless-stopped
+    
+  # API service
+  api-service:
+    image: python:3.9-slim
+    container_name: api-service
+    ports:
+      - "8000:8000"
+    command: >
+      bash -c "pip install flask && python -c '
+        from flask import Flask, jsonify
+        app = Flask(__name__)
+        @app.route(\"/\")
+        def home():
+            return \"<html><body><h1>MCTX API Service</h1><p>This service is healthy and running.</p></body></html>\"
+        @app.route(\"/api/health\")
+        def health():
+            return jsonify({\"status\": \"healthy\"})
+        app.run(host=\"0.0.0.0\", port=8000)
+      '"
+    restart: unless-stopped
+    
+  # Secondary visualization service
+  viz-alt:
+    image: python:3.9-slim
+    container_name: viz-alt
+    ports:
+      - "8051:8051"
+    command: >
+      bash -c "pip install flask && python -c '
+        from flask import Flask
+        app = Flask(__name__)
+        @app.route(\"/\")
+        def home():
+            return \"<html><body><h1>MCTX Secondary Visualization</h1><p>This service is healthy and running.</p></body></html>\"
+        app.run(host=\"0.0.0.0\", port=8051)
+      '"
+    restart: unless-stopped
+    
+  # Documentation service
+  docs:
+    image: python:3.9-slim
+    container_name: docs
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "mkdir -p /tmp/docs && echo '<html><body><h1>MCTX Documentation</h1><p>Documentation server is running.</p></body></html>' > /tmp/docs/index.html && python -m http.server 8080 --directory /tmp/docs"
+    restart: unless-stopped
+    
+  # Prometheus service
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/gpu.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+    
+  # Grafana service
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped

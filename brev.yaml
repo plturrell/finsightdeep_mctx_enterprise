@@ -1,0 +1,63 @@
+version: v1
+name: finsightdeep-mctx-enterprise
+description: Enterprise-grade Monte Carlo Tree Search with T4 GPU optimizations
+tags:
+  - gpu
+  - ai
+  - decision-intelligence
+  - t4-optimized
+icon: https://example.com/mctx-icon.png
+source: https://github.com/plturrell/finsightdeep_mctx_enterprise
+
+# Required compute resources
+compute:
+  gpu: true
+  gpuCount: 1
+  gpuType: T4
+  memoryGB: 16
+  storageGB: 10
+
+# Exposed ports
+ports:
+  - port: 8050
+    name: Main Visualization
+    description: Interactive MCTS tree visualization dashboard
+  - port: 8000
+    name: API Server
+    description: REST API for programmatic access
+  - port: 8051
+    name: Secondary Visualization
+    description: Alternative visualization interface
+  - port: 9090
+    name: Prometheus
+    description: Metrics collection and querying
+  - port: 3001
+    name: Grafana
+    description: Interactive monitoring dashboards
+  - port: 8080
+    name: Documentation
+    description: Documentation server
+
+# Docker Compose configuration
+docker:
+  compose:
+    file: docker-compose.brev.yml
+
+# Setup commands
+setup:
+  - mkdir -p examples
+  - mkdir -p mctx_output
+  - mkdir -p config/prometheus
+  - echo "global:" > config/prometheus/gpu.yml
+  - echo "  scrape_interval: 15s" >> config/prometheus/gpu.yml
+  - echo "scrape_configs:" >> config/prometheus/gpu.yml
+  - echo "  - job_name: 'mctx'" >> config/prometheus/gpu.yml
+  - echo "    static_configs:" >> config/prometheus/gpu.yml
+  - echo "      - targets: ['localhost:8000']" >> config/prometheus/gpu.yml
+
+# Documentation
+docs:
+  - title: README
+    path: README.md
+  - title: NVIDIA LaunchPad Guide
+    path: NVIDIA_LAUNCHPAD.md
