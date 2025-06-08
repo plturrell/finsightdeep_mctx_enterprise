@@ -96,11 +96,49 @@ The blueprint includes integration with SAP HANA for enterprise data storage:
 - `HANA_ENABLE_CACHING`: Whether to enable result caching (default: True)
 
 The SAP HANA integration provides:
-- Storage and retrieval of MCTS trees and search results
+- Complete CRUD operations for MCTS trees and search results
 - Model caching for improved performance
 - Search history tracking and analytics
 - Enterprise-grade data persistence
 - Automatic schema and table management
+- Bulk operations for high-throughput scenarios
+- Database cleanup and maintenance utilities
+- Comprehensive REST API for database operations
+- CLI tool for database management
+
+#### HANA Management CLI
+
+The blueprint includes a command-line tool for managing the HANA database:
+
+```bash
+# View database statistics
+./bin/hana-manager.py stats
+
+# Clean up old data (older than 30 days)
+./bin/hana-manager.py cleanup --days 30
+
+# List trees with filtering
+./bin/hana-manager.py list --min-batch 64 --min-sims 500
+
+# Delete specific trees or results
+./bin/hana-manager.py delete tree --id <tree_id> --cascade
+./bin/hana-manager.py delete results --older-than 7
+```
+
+#### HANA REST API
+
+The blueprint also includes a comprehensive REST API for HANA operations:
+
+- **GET /api/hana/status/** - Check HANA connection status
+- **GET /api/hana/trees/** - List trees with filtering and pagination
+- **GET /api/hana/trees/{tree_id}** - Get tree metadata
+- **PATCH /api/hana/trees/{tree_id}** - Update tree metadata
+- **DELETE /api/hana/trees/{tree_id}** - Delete a tree
+- **POST /api/hana/trees/bulk-delete** - Delete multiple trees
+- **DELETE /api/hana/results/{result_id}** - Delete a simulation result
+- **DELETE /api/hana/results** - Delete results by filter
+- **GET /api/hana/statistics** - Get database statistics
+- **POST /api/hana/cleanup** - Clean up old data
 
 ## T4 GPU Optimizations
 

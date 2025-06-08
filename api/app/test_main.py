@@ -90,7 +90,7 @@ async def metrics():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# SAP HANA connection test endpoint
+# Enhanced HANA API router support
 @app.get("/hana/test/", tags=["hana"])
 async def hana_test():
     """Test SAP HANA connection."""
@@ -143,3 +143,11 @@ async def hana_test():
             status_code=500,
             detail=f"Failed to connect to SAP HANA: {str(e)}"
         )
+
+# For full HANA API functionality, use the dedicated routers/hana.py module
+# This would be included in the main.py application as follows:
+#
+# from .routers import hana as hana_router
+# app.include_router(hana_router.router)
+#
+# The test_main.py file provides basic connectivity testing only.
