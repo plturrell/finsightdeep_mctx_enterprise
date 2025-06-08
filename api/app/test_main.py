@@ -22,7 +22,9 @@ except ImportError:
 app = FastAPI(
     title="MCTX Test API",
     version="0.1.0",
-    description="Simple test API for MCTX Docker testing"
+    description="Simple test API for MCTX Docker testing",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json"
 )
 
 # Add CORS middleware
@@ -143,6 +145,57 @@ async def hana_test():
             status_code=500,
             detail=f"Failed to connect to SAP HANA: {str(e)}"
         )
+
+# Memory-optimized API endpoints
+@app.get("/optimized/test/", tags=["optimized"])
+async def optimized_test():
+    """Test memory-optimized functionality."""
+    logger.info("Memory-optimized test endpoint called")
+    return {
+        "status": "available",
+        "message": "Memory-optimized API endpoints are available",
+        "features": [
+            "Batched serialization for large trees",
+            "Incremental loading of tree nodes",
+            "Memory-efficient processing",
+            "Subtree loading",
+            "High-value node prioritization"
+        ],
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+@app.post("/optimized/trees/", tags=["optimized"])
+async def create_batched_tree():
+    """Create a tree using batched serialization (simulation)."""
+    logger.info("Batched tree creation endpoint called")
+    return {
+        "tree_id": "test-tree-123",
+        "message": "Tree saved successfully using batched serialization (simulation)",
+        "execution_time": 0.25,
+        "node_count": 1000
+    }
+
+@app.get("/optimized/trees/{tree_id}/depth/{max_depth}", tags=["optimized"])
+async def get_tree_by_depth(tree_id: str, max_depth: int):
+    """Get a tree by depth (simulation)."""
+    logger.info(f"Get tree by depth endpoint called: tree_id={tree_id}, max_depth={max_depth}")
+    return {
+        "tree": {
+            "tree_id": tree_id,
+            "name": "Test Tree",
+            "nodes": [
+                {"id": "root", "parent_id": "", "visit_count": 100, "value": 0.5},
+                {"id": "child1", "parent_id": "root", "visit_count": 50, "value": 0.7},
+                {"id": "child2", "parent_id": "root", "visit_count": 30, "value": 0.4}
+            ],
+            "metadata": {
+                "depth": max_depth,
+                "loaded_nodes": 3,
+                "total_nodes": 1000
+            }
+        },
+        "execution_time": 0.05
+    }
 
 # For full HANA API functionality, use the dedicated routers/hana.py module
 # This would be included in the main.py application as follows:
