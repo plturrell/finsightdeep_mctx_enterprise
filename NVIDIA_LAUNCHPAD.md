@@ -68,6 +68,16 @@ This deployment includes NVIDIA T4-specific optimizations:
 - **Mixed Precision**: Uses FP16/FP32 mixed precision for faster computation
 - **Batch Processing**: Optimized batching for T4 architecture
 
+## Memory Optimization Features
+
+Advanced memory management for large-scale tree processing:
+
+- **Batched Serialization**: Save and load extremely large trees in chunks to avoid memory issues
+- **Incremental Loading**: Load trees by depth, path, or high-value nodes to optimize memory usage
+- **Query Caching**: Reduce database load with intelligent caching of query results
+- **Memory-Efficient Processing**: Automatically manage memory usage during processing
+- **Adaptive Page Loading**: Load only the necessary portions of trees when needed
+
 ## Troubleshooting
 
 If you encounter issues:
@@ -100,10 +110,14 @@ The container includes several examples:
 2. **Policy Improvement Demo**: Demonstrates Gumbel MuZero policy improvement
 3. **Monitoring Demo**: Shows real-time metrics collection
 4. **T4 Optimization Demo**: Demonstrates T4-specific performance enhancements
+5. **Memory Optimization Demo**: Shows memory-efficient handling of extremely large trees
 
 To run an example:
 ```bash
 docker exec -it mctx-nvidia python examples/[example_name].py
+
+# Run the memory optimization demo
+docker exec -it mctx-nvidia python examples/memory_optimization_demo.py
 ```
 
 ## Additional Resources

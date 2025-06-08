@@ -1,5 +1,5 @@
 name: FinsightDeep MCTX Enterprise
-version: 1.0.0
+version: 1.1.0
 description: Enterprise-grade Monte Carlo Tree Search with T4 GPU optimizations for business decision intelligence
 author: FinSight Development Team
 blueprint_id: finsightdeep-mctx-enterprise
@@ -12,6 +12,8 @@ tags:
   - t4-optimized
   - monte-carlo
   - jax
+  - tensor-cores
+  - distributed-computing
 difficulty: intermediate
 estimated_runtime: 60
 
@@ -21,39 +23,106 @@ requirements:
   gpu_type: T4
   memory_gb: 16
   storage_gb: 10
+  cpu_cores: 8
 
 # Services information
 services:
+  - name: MCTS API Service
+    port: 8000
+    url_path: /api/v1/docs
+    description: API for Monte Carlo Tree Search with Tensor Core optimizations
+    
   - name: Main Visualization
     port: 8050
     url_path: /
     description: Interactive MCTS tree visualization dashboard
     
-  - name: API Server
-    port: 8000
-    url_path: /
-    description: REST API for programmatic access
-    
-  - name: Secondary Visualization
+  - name: Advanced Monitoring
     port: 8051
     url_path: /
-    description: Alternative visualization interface
-    
-  - name: Prometheus
-    port: 9090
-    url_path: /
-    description: Metrics collection and querying
-    
-  - name: Grafana
-    port: 3001
-    url_path: /
-    description: Interactive monitoring dashboards (login with admin/admin)
+    description: Performance monitoring and optimization visualization
     
   - name: Documentation
     port: 8080
     url_path: /
-    description: Documentation server
+    description: Comprehensive documentation and tutorials
+    
+  - name: Prometheus Metrics
+    port: 9090
+    url_path: /
+    description: Metrics collection and querying
+    
+  - name: Grafana Dashboards
+    port: 3001
+    url_path: /
+    description: Interactive monitoring dashboards (login with admin/admin)
 
-# Documentation
+# Documentation and metadata
 documentation:
   readme: LAUNCHPAD_README.md
+  overview: |
+    # MCTX Enterprise with T4 Optimizations
+    
+    This blueprint deploys a production-ready Monte Carlo Tree Search platform
+    optimized for NVIDIA T4 GPUs. It features:
+    
+    - Tensor Core-aware pruning strategies for maximum GPU utilization
+    - Multi-node scaling capabilities with NCCL collective operations
+    - Advanced visualization and monitoring tools
+    - Production-grade logging and error handling
+    - Comprehensive documentation and examples
+    - Memory-optimized SAP HANA integration for handling extremely large trees
+    - Batched serialization and incremental loading for memory efficiency
+    - Intelligent query caching for improved database performance
+    
+    ## Getting Started
+    
+    1. Navigate to the API documentation at port 8000 to explore available endpoints
+    2. View interactive visualizations at port 8050
+    3. Monitor performance metrics in Grafana at port 3001 (login: admin/admin)
+    4. Browse documentation at port 8080
+
+environment_variables:
+  - name: API_SECRET_KEY
+    description: Secret key for API security (change from default in production)
+    default: default_development_key_replace_in_production
+    
+  - name: GRAFANA_PASSWORD
+    description: Password for Grafana admin user
+    default: admin
+    
+  - name: LOG_LEVEL
+    description: Logging verbosity (DEBUG, INFO, WARNING, ERROR)
+    default: INFO
+    
+  - name: MAX_BATCH_SIZE
+    description: Maximum batch size for processing
+    default: "64"
+    
+  - name: MAX_NUM_SIMULATIONS
+    description: Maximum number of simulations per request
+    default: "1000"
+
+# Hardware recommendations
+performance:
+  gpu_memory: 16GB
+  recommended_gpu: NVIDIA T4
+  scaling: |
+    For production workloads, the following scaling is recommended:
+    - Up to 100 concurrent users: 1x NVIDIA T4
+    - Up to 500 concurrent users: 2x NVIDIA T4
+    - Up to 1000 concurrent users: 4x NVIDIA T4 or 1x NVIDIA A100
+    
+    For multi-node deployments, enable the MCTX_ENABLE_MULTI_NODE setting
+    and configure the node count and rank for each instance.
+
+# Security information
+security:
+  authentication: true
+  authorization: true
+  encryption: true
+  notes: |
+    - API endpoints are secured with JWT authentication
+    - All communication uses HTTPS (configure certificates in production)
+    - Sensitive environment variables should be changed in production
+    - Review CORS settings for production deployment
