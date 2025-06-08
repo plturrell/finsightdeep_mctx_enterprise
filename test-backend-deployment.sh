@@ -120,6 +120,18 @@ else
   exit 1
 fi
 
+# Test HANA connection (optional)
+echo -n "Testing HANA connection: "
+HANA_RESPONSE=$(curl -s http://localhost:8000/hana/test/)
+if echo "$HANA_RESPONSE" | grep -q "connected"; then
+  echo "OK - HANA connection successful"
+else
+  echo "WARNING - HANA connection failed"
+  echo "HANA test endpoint response:"
+  echo "$HANA_RESPONSE"
+  echo "Continuing anyway as HANA might not be available in all environments..."
+fi
+
 # Check if docs are available (optional)
 echo -n "Testing documentation server: "
 if curl -s http://localhost:8080/ | grep -q "html"; then

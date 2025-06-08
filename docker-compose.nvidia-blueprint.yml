@@ -42,6 +42,16 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=0
+      
+      # SAP HANA settings
+      - HANA_HOST=${HANA_HOST:-d93a8739-44a8-4845-bef3-8ec724dea2ce.hana.prod-us10.hanacloud.ondemand.com}
+      - HANA_PORT=${HANA_PORT:-443}
+      - HANA_USER=${HANA_USER:-DBADMIN}
+      - HANA_PASSWORD=${HANA_PASSWORD:-Initial@1}
+      - HANA_SCHEMA=${HANA_SCHEMA:-MCTX}
+      - HANA_ENCRYPT=${HANA_ENCRYPT:-True}
+      - HANA_POOL_SIZE=${HANA_POOL_SIZE:-10}
+      - HANA_ENABLE_CACHING=${HANA_ENABLE_CACHING:-True}
     restart: unless-stopped
     depends_on:
       - redis
@@ -82,6 +92,16 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PYTHONUNBUFFERED=1
       - MCTX_ENABLE_T4_OPTIMIZATIONS=1
+      
+      # SAP HANA settings
+      - HANA_HOST=${HANA_HOST:-d93a8739-44a8-4845-bef3-8ec724dea2ce.hana.prod-us10.hanacloud.ondemand.com}
+      - HANA_PORT=${HANA_PORT:-443}
+      - HANA_USER=${HANA_USER:-DBADMIN}
+      - HANA_PASSWORD=${HANA_PASSWORD:-Initial@1}
+      - HANA_SCHEMA=${HANA_SCHEMA:-MCTX}
+      - HANA_ENCRYPT=${HANA_ENCRYPT:-True}
+      - HANA_POOL_SIZE=${HANA_POOL_SIZE:-5}
+      - HANA_ENABLE_CACHING=${HANA_ENABLE_CACHING:-True}
     restart: unless-stopped
     deploy:
       resources:
@@ -120,6 +140,16 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PYTHONUNBUFFERED=1
       - MCTX_ENABLE_T4_OPTIMIZATIONS=1
+      
+      # SAP HANA settings
+      - HANA_HOST=${HANA_HOST:-d93a8739-44a8-4845-bef3-8ec724dea2ce.hana.prod-us10.hanacloud.ondemand.com}
+      - HANA_PORT=${HANA_PORT:-443}
+      - HANA_USER=${HANA_USER:-DBADMIN}
+      - HANA_PASSWORD=${HANA_PASSWORD:-Initial@1}
+      - HANA_SCHEMA=${HANA_SCHEMA:-MCTX}
+      - HANA_ENCRYPT=${HANA_ENCRYPT:-True}
+      - HANA_POOL_SIZE=${HANA_POOL_SIZE:-5}
+      - HANA_ENABLE_CACHING=${HANA_ENABLE_CACHING:-True}
     restart: unless-stopped
     depends_on:
       - api

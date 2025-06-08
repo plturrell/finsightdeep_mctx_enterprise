@@ -30,6 +30,7 @@ The blueprint deploys the following services:
 - **Prometheus (Port 9090)**: Metrics collection and storage
 - **Grafana (Port 3001)**: Interactive dashboards for monitoring
 - **Redis (Port 6379)**: For caching and rate limiting
+- **SAP HANA Integration**: For enterprise data storage and processing
 
 ## Deployment
 
@@ -80,6 +81,26 @@ The blueprint is configured using environment variables defined in `.env.nvidia`
 - `MAX_NUM_SIMULATIONS`: Maximum simulations per request (default: 1000)
 - `API_SECRET_KEY`: Secret key for API security
 - `GRAFANA_PASSWORD`: Password for Grafana admin user
+
+### SAP HANA Configuration
+
+The blueprint includes integration with SAP HANA for enterprise data storage:
+
+- `HANA_HOST`: SAP HANA hostname (default: d93a8739-44a8-4845-bef3-8ec724dea2ce.hana.prod-us10.hanacloud.ondemand.com)
+- `HANA_PORT`: SAP HANA port (default: 443)
+- `HANA_USER`: SAP HANA username (default: DBADMIN)
+- `HANA_PASSWORD`: SAP HANA password
+- `HANA_SCHEMA`: Schema name for MCTX tables (default: MCTX)
+- `HANA_ENCRYPT`: Whether to use encryption for the connection (default: True)
+- `HANA_POOL_SIZE`: Connection pool size (default: 10 for API, 5 for other services)
+- `HANA_ENABLE_CACHING`: Whether to enable result caching (default: True)
+
+The SAP HANA integration provides:
+- Storage and retrieval of MCTS trees and search results
+- Model caching for improved performance
+- Search history tracking and analytics
+- Enterprise-grade data persistence
+- Automatic schema and table management
 
 ## T4 GPU Optimizations
 
